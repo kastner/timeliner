@@ -11,15 +11,17 @@ redis_client.on('error', (err) => { console.log(err); });
 async function getUser(user_id, context) {
   if (users[user_id] === undefined) {
     // get the user from the Slack api
-    console.log(`Need to look up ${user_id} from the API`);
+    // console.log(`Need to look up ${user_id} from the API`);
     const user = await app.client.users.info({ token: context.botToken, user: user_id, include_locale: true });
     // console.log(`display_name_normalized: ${profile.profile.display_name_normalized}`)
+    const user_tz = (user.user.tz === undefined) ? 'America/Los_Angeles' : user.user.tz;
     users[user_id] = {
       real_name_normalized: user.user.profile.real_name_normalized,
       display_name_normalized: user.user.profile.display_name_normalized,
+      display_name: user.user.profile.display_name,
       image_32: user.user.profile.image_32,
       tz_offset: user.user.tz_offset,
-      tz: user.user.tz,
+      tz: user_tz,
       tz_label: user.user.tz_label
     }
   }
@@ -64,9 +66,27 @@ app.shortcut('message_to_timeline', async ({ shortcut, ack, context, client }) =
           const user = await getUser(json.shortcut.message.user, context);
           const ts = parseInt(json.shortcut.message.ts) * 1000;
           const m = moment(ts);
-          const dF = 'YYYY-MM-DD ha z';
-          messages.push(`* [#${json.shortcut.channel.name}] ${user.display_name_normalized} (${m.tz(user.tz).format(dF)}): ${json.shortcut.message.text}`);
+          const dF = 'YYYY-MM-DD h:mma z';
+          const logObject = {
+            ts: json.shortcut.message.ts,
+            link: json.permalink,
+            channel: json.shortcut.channel.name,
+            user: user.display_name,
+            message_local_time: m.tz(user.tz).format(),
+            message: json.shortcut.message.text
+          }
+          // console.log(`${json.shortcut.message.ts}\t${json.permalink}\t#${json.shortcut.channel.name}\t@${user.display_name_normalized}\t${m.tz(user.tz).format()}\t${json.shortcut.message.text}`);
+          console.log(JSON.stringify(logObject));
+          messages.push(`* [#${json.shortcut.channel.name}] @${user.display_name_normalized} (${m.tz(user.tz).format(dF)}): ${json.shortcut.message.text.substr(0, 300)}`);
         }
+      }
+
+      const totalMessages = messages.length;
+      let textString = "";
+      if (totalMessages > 15) {
+        textString = messages.slice(totalMessages - 15, totalMessages).join("\n");
+      } else {
+        textString = messages.join("\n");
       }
 
       // Call the views.open method using one of the built-in WebClients
@@ -83,7 +103,7 @@ app.shortcut('message_to_timeline', async ({ shortcut, ack, context, client }) =
             text: {
               type: "mrkdwn",
               //text: "About the simplest modal you could conceive of :smile:\n\nMaybe <https://api.slack.com/reference/block-kit/interactive-components|*make the modal interactive*> or <https://api.slack.com/surfaces/modals/using#modifying|*learn more advanced modal use cases*>."
-              text: `Items:\n\n ${messages.join("\n")}`
+              text: `Items:\n\n ${textString}`
             }
           }]
         }
