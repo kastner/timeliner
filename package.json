@@ -12,7 +12,7 @@
     "@slack/bolt": "^2.0.0",
     "moment": "^2.24.0",
     "moment-timezone": "^0.5.28",
-    "redis": "^3.0.2"
+    "redis": "^3.1.1"
   },
   "devDependencies": {
     "nodemon": "^2.0.2"
