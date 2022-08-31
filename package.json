@@ -11,7 +11,7 @@
   "dependencies": {
     "@slack/bolt": "^2.0.0",
     "moment": "^2.24.0",
-    "moment-timezone": "^0.5.28",
+    "moment-timezone": "^0.5.35",
     "redis": "^3.0.2"
   },
   "devDependencies": {
